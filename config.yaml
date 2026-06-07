@@ -1,0 +1,6 @@
+otel_data_dir: "./data/otel"
+sqlite_path: "./data/metrics.db"
+expansion_threshold_pct: 50
+snapshot_message_count: 20
+poll_interval_seconds: 5
+metrics_port: 9090
