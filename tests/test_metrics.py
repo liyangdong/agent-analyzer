@@ -38,13 +38,59 @@ def test_update_metrics_with_data(temp_db, sample_session, sample_tool_after, sa
     registry = CollectorRegistry()
     metrics = create_metrics(registry)
     update_all_metrics(temp_db, metrics)
-    # Verify counters have values
-    samples_by_name = {}
+
+    def _find_sample(samples, name, labels_subset=None):
+        """Return the first sample matching name and optional label subset."""
+        for s in samples:
+            if s.name != name:
+                continue
+            if labels_subset:
+                if all(s.labels.get(k) == v for k, v in labels_subset.items()):
+                    return s
+            else:
+                return s
+        return None
+
+    all_samples = []
     for m in registry.collect():
         for s in m.samples:
-            name = s.name
-            if name not in samples_by_name:
-                samples_by_name[name] = []
-            samples_by_name[name].append(s)
-    assert "opencode_interactions_total" in samples_by_name
-    assert "opencode_tokens_total" in samples_by_name
+            all_samples.append(s)
+
+    # interactions_total: should be > 0 (1 tool execution inserted)
+    interactions_sample = _find_sample(
+        all_samples, "opencode_interactions_total",
+        labels_subset={"session": "all", "tool": "all"},
+    )
+    assert interactions_sample is not None, "Missing interactions_total sample"
+    assert interactions_sample.value > 0, (
+        f"Expected interactions_total > 0, got {interactions_sample.value}"
+    )
+
+    # tokens_total: should be > 0 (1 message with 512 tokens inserted)
+    tokens_sample = _find_sample(
+        all_samples, "opencode_tokens_total",
+        labels_subset={"session": "all", "direction": "total"},
+    )
+    assert tokens_sample is not None, "Missing tokens_total sample"
+    assert tokens_sample.value > 0, (
+        f"Expected tokens_total > 0, got {tokens_sample.value}"
+    )
+
+    # context_size_bytes: per-session gauge (2048 bytes from the message)
+    ctx_sample = _find_sample(
+        all_samples, "opencode_context_size_bytes",
+        labels_subset={"session": "session-abc-123"},
+    )
+    assert ctx_sample is not None, "Missing context_size_bytes sample"
+    assert ctx_sample.value == 2048, (
+        f"Expected context_size_bytes == 2048, got {ctx_sample.value}"
+    )
+
+    # tool_duration_seconds: histogram should be populated
+    dur_sample = _find_sample(
+        all_samples, "opencode_tool_duration_seconds_sum",
+    )
+    assert dur_sample is not None, "Missing tool_duration_seconds histogram sample"
+    assert dur_sample.value > 0, (
+        f"Expected tool_duration_seconds_sum > 0, got {dur_sample.value}"
+    )

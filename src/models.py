@@ -216,3 +216,17 @@ def get_expansion_events_by_tool(db_path: str) -> list[dict]:
             "SELECT trigger_event, COUNT(*) as cnt FROM context_snapshots GROUP BY trigger_event"
         ).fetchall()
     return rows
+
+
+def get_tool_durations(db_path: str) -> list[dict]:
+    with _connect(db_path) as conn:
+        return conn.execute(
+            "SELECT session_id, tool_name, duration_ms FROM tool_executions WHERE duration_ms IS NOT NULL"
+        ).fetchall()
+
+
+def get_compaction_tokens_removed(db_path: str) -> list[dict]:
+    with _connect(db_path) as conn:
+        return conn.execute(
+            "SELECT session_id, tokens_removed FROM compactions WHERE tokens_removed IS NOT NULL"
+        ).fetchall()
