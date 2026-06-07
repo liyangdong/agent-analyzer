@@ -3,7 +3,7 @@ import os
 from src.models import (
     insert_tool_execution, insert_message, insert_compaction,
     insert_context_snapshot, insert_session, get_recent_messages,
-    get_context_size, get_session,
+    get_context_size, get_session, _connect,
 )
 
 
@@ -11,7 +11,6 @@ OTEL_EVENT_TYPES = {
     "TOOL_BEFORE": 1,
     "TOOL_AFTER": 2,
     "SESSION_CREATED": 3,
-    "SESSION_UPDATED": 4,
     "SESSION_COMPACTED": 5,
     "COMPACTED": 5,
     "MESSAGE": 6,
@@ -86,14 +85,12 @@ def _check_context_expansion(db_path: str, session_id: str, trigger: str,
     current_size = get_context_size(db_path, session_id)
     if current_size == 0:
         return
-    import sqlite3
-    conn = sqlite3.connect(db_path)
-    prev = conn.execute(
-        "SELECT context_size FROM context_snapshots WHERE session_id = ? ORDER BY timestamp DESC LIMIT 1",
-        (session_id,),
-    ).fetchone()
-    conn.close()
-    prev_size = prev[0] if prev else 0
+    with _connect(db_path) as conn:
+        prev = conn.execute(
+            "SELECT context_size FROM context_snapshots WHERE session_id = ? ORDER BY timestamp DESC LIMIT 1",
+            (session_id,),
+        ).fetchone()
+        prev_size = prev["context_size"] if prev else 0
     if prev_size > 0:
         delta_pct = ((current_size - prev_size) / prev_size) * 100
     else:
@@ -109,17 +106,15 @@ def _check_context_expansion(db_path: str, session_id: str, trigger: str,
 
 
 def _update_compaction_snapshot_after(db_path: str, session_id: str, snapshot_count: int):
-    import sqlite3
-    conn = sqlite3.connect(db_path)
     messages = get_recent_messages(db_path, session_id, snapshot_count)
     snapshot_after = json.dumps(messages, ensure_ascii=False)
-    conn.execute(
-        """UPDATE compactions SET snapshot_after = ?
-           WHERE session_id = ? AND id = (SELECT MAX(id) FROM compactions WHERE session_id = ?)""",
-        (snapshot_after, session_id, session_id),
-    )
-    conn.commit()
-    conn.close()
+    with _connect(db_path) as conn:
+        conn.execute(
+            """UPDATE compactions SET snapshot_after = ?
+               WHERE session_id = ? AND id = (SELECT MAX(id) FROM compactions WHERE session_id = ?)""",
+            (snapshot_after, session_id, session_id),
+        )
+        conn.commit()
 
 
 def parse_otlp_file(file_path: str, db_path: str, snapshot_message_count: int = 20,

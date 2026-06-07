@@ -108,7 +108,7 @@ def insert_tool_execution(db_path: str, event: dict):
                (session_id, tool_name, args_json, duration_ms, success, error, input_size, output_size, timestamp)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (event["session_id"], d["tool"], args_json,
-             d.get("duration", 0), 1 if d.get("success") else 0,
+             d.get("duration", 0), 1 if d.get("success", True) else 0,
              d.get("error"), d.get("input_size", 0), d.get("output_size", 0),
              event["timestamp"]),
         )
@@ -178,10 +178,10 @@ def insert_context_snapshot(db_path: str, *, session_id: str, context_size: int,
 def get_context_size(db_path: str, session_id: str) -> int:
     with _connect(db_path) as conn:
         row = conn.execute(
-            "SELECT content_size FROM messages WHERE session_id = ? ORDER BY timestamp DESC LIMIT 1",
+            "SELECT COALESCE(SUM(content_size), 0) as total FROM messages WHERE session_id = ?",
             (session_id,),
         ).fetchone()
-    return row["content_size"] if row else 0
+    return row["total"] if row else 0
 
 
 def get_total_interactions(db_path: str) -> int:
