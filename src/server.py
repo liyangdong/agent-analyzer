@@ -1,17 +1,15 @@
+import json
 import os
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from prometheus_client import CollectorRegistry, generate_latest, CONTENT_TYPE_LATEST
-from src.metrics import create_metrics, update_all_metrics
 
 
 class MetricsHandler(BaseHTTPRequestHandler):
-    metrics: dict = {}
     registry: CollectorRegistry = None
     db_path: str = ""
 
     def do_GET(self):
         if self.path == "/metrics":
-            update_all_metrics(self.db_path, self.metrics)
             data = generate_latest(self.registry)
             self.send_response(200)
             self.send_header("Content-Type", CONTENT_TYPE_LATEST)
@@ -21,7 +19,7 @@ class MetricsHandler(BaseHTTPRequestHandler):
         elif self.path == "/health":
             db_exists = os.path.exists(self.db_path)
             status = {"status": "ok" if db_exists else "degraded", "db_path": self.db_path}
-            body = str(status).encode()
+            body = json.dumps(status).encode()
             self.send_response(200 if db_exists else 503)
             self.send_header("Content-Type", "text/plain")
             self.end_headers()
@@ -34,9 +32,8 @@ class MetricsHandler(BaseHTTPRequestHandler):
         pass
 
 
-def start_server(port: int, db_path: str, metrics: dict, registry: CollectorRegistry):
+def start_server(port: int, db_path: str, registry: CollectorRegistry):
     handler = MetricsHandler
-    handler.metrics = metrics
     handler.registry = registry
     handler.db_path = db_path
     server = HTTPServer(("0.0.0.0", port), handler)
