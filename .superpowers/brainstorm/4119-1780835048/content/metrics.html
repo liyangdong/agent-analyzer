@@ -1,0 +1,81 @@
+<h2>Prometheus Metrics Design</h2>
+<p class="subtitle">Metrics exposed at /metrics for Grafana dashboard panels</p>
+
+<table style="width:100%;border-collapse:collapse;margin-top:16px;font-size:13px;">
+  <thead>
+    <tr style="background:#0f3460;">
+      <th style="padding:10px;text-align:left;color:#e94560;">指标名</th>
+      <th style="padding:10px;text-align:left;color:#e94560;">类型</th>
+      <th style="padding:10px;text-align:left;color:#e94560;">标签</th>
+      <th style="padding:10px;text-align:left;color:#e94560;">对应需求</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="background:#16213e;">
+      <td style="padding:10px;font-family:monospace;color:#fff;">opencode_interactions_total</td>
+      <td style="padding:10px;"><span class="label">Counter</span></td>
+      <td style="padding:10px;color:#aaa;">session, tool</td>
+      <td style="padding:10px;color:#ccc;">交互次数</td>
+    </tr>
+    <tr style="background:#1a1a2e;">
+      <td style="padding:10px;font-family:monospace;color:#fff;">opencode_tokens_total</td>
+      <td style="padding:10px;"><span class="label">Counter</span></td>
+      <td style="padding:10px;color:#aaa;">session, direction(input/output)</td>
+      <td style="padding:10px;color:#ccc;">Token 消耗</td>
+    </tr>
+    <tr style="background:#16213e;">
+      <td style="padding:10px;font-family:monospace;color:#fff;">opencode_context_size_bytes</td>
+      <td style="padding:10px;"><span class="label">Gauge</span></td>
+      <td style="padding:10px;color:#aaa;">session</td>
+      <td style="padding:10px;color:#ccc;">上下文变化趋势</td>
+    </tr>
+    <tr style="background:#1a1a2e;">
+      <td style="padding:10px;font-family:monospace;color:#fff;">opencode_compactions_total</td>
+      <td style="padding:10px;"><span class="label">Counter</span></td>
+      <td style="padding:10px;color:#aaa;">session</td>
+      <td style="padding:10px;color:#ccc;">Compaction 次数</td>
+    </tr>
+    <tr style="background:#16213e;">
+      <td style="padding:10px;font-family:monospace;color:#fff;">opencode_context_expansion_total</td>
+      <td style="padding:10px;"><span class="label">Counter</span></td>
+      <td style="padding:10px;color:#aaa;">session, tool</td>
+      <td style="padding:10px;color:#ccc;">快速膨胀事件<br/><span style="font-size:10px;">阈值: 单次增长 &gt;50%</span></td>
+    </tr>
+    <tr style="background:#1a1a2e;">
+      <td style="padding:10px;font-family:monospace;color:#fff;">opencode_tool_duration_seconds</td>
+      <td style="padding:10px;"><span class="label">Histogram</span></td>
+      <td style="padding:10px;color:#aaa;">session, tool</td>
+      <td style="padding:10px;color:#ccc;">工具调用耗时分布</td>
+    </tr>
+    <tr style="background:#16213e;">
+      <td style="padding:10px;font-family:monospace;color:#fff;">opencode_compaction_tokens_removed</td>
+      <td style="padding:10px;"><span class="label">Histogram</span></td>
+      <td style="padding:10px;color:#aaa;">session</td>
+      <td style="padding:10px;color:#ccc;">每次压缩移除的 token 分布</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 style="margin-top:24px;">Grafana Panel 映射</h3>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Dashboard Row 1: Overview</div>
+    <div class="mockup-body" style="padding:16px;">
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <div class="placeholder" style="flex:1;text-align:center;">Stat: 交互总次数<br/><b>opencode_interactions_total</b></div>
+        <div class="placeholder" style="flex:1;text-align:center;">Stat: Token 总消耗<br/><b>opencode_tokens_total</b></div>
+        <div class="placeholder" style="flex:1;text-align:center;">Stat: Compaction 次数<br/><b>opencode_compactions_total</b></div>
+      </div>
+      <div class="placeholder" style="width:100%;height:120px;text-align:center;">Time Series: 上下文大小变化趋势 (Gauge)<br/><b>opencode_context_size_bytes</b></div>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">Dashboard Row 2: Analysis</div>
+    <div class="mockup-body" style="padding:16px;">
+      <div class="placeholder" style="width:100%;height:80px;text-align:center;">Bar Gauge: 各工具调用次数分布<br/><b>opencode_interactions_total by tool</b></div>
+      <div class="placeholder" style="width:100%;height:80px;text-align:center;">Heatmap: 工具调用耗时<br/><b>opencode_tool_duration_seconds</b></div>
+      <div class="placeholder" style="width:100%;height:80px;text-align:center;">Time Series: 上下文膨胀事件<br/><b>opencode_context_expansion_total by tool</b></div>
+    </div>
+  </div>
+</div>
